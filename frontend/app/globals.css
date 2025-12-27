@@ -1,0 +1,120 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --pk-green-600: #16A34A;
+  --pk-green-700: #15803D;
+  --pk-green-800: #166534;
+  --pk-green-50: #f0fdf4;
+  --pk-green-100: #dcfce7;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #f9fafb;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--pk-green-600);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--pk-green-700);
+}
+
+/* Message animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes typing {
+  0%, 60%, 100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.3s ease-out forwards;
+}
+
+.typing-dot {
+  animation: typing 1s infinite;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* Chat container scroll */
+.chat-container {
+  scrollbar-width: thin;
+  scrollbar-color: var(--pk-green-600) #f1f1f1;
+}
+
+/* Button hover effects */
+.btn-primary {
+  @apply bg-green-600 hover:bg-green-700 text-white transition-all duration-200;
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+/* Input focus styles */
+input:focus, textarea:focus {
+  @apply outline-none ring-2 ring-green-500 ring-opacity-50;
+}
+
+/* Suggested question hover */
+.suggested-question {
+  @apply transition-all duration-200 hover:bg-green-50 hover:border-green-500 hover:text-green-700;
+}
+
+/* Mobile menu animation */
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.mobile-menu-enter {
+  animation: slideIn 0.3s ease-out forwards;
+}
