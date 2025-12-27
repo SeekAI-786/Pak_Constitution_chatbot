@@ -27,6 +27,9 @@ TOP_K = 7
 # =====================================================
 # INIT CLIENTS
 # =====================================================
+if not PINECONE_API_KEY:
+    raise RuntimeError("PINECONE_API_KEY is not set")
+
 pc = Pinecone(api_key=PINECONE_API_KEY)
 index = pc.Index(INDEX_NAME)
 
