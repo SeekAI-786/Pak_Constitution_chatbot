@@ -43,8 +43,8 @@ const SUGGESTED_QUESTIONS = [
 
 // TODO: Add your actual links here
 const SOCIAL_LINKS = {
-  github: "https://github.com/YOUR_GITHUB",
-  linkedin: "https://linkedin.com/in/YOUR_LINKEDIN",
+  github: "https://github.com/SeekAI-786",
+  linkedin: "https://www.linkedin.com/in/muhammad-aunali/",
   echytech: "https://echytech.com"
 }
 
