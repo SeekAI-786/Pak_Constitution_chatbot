@@ -50,7 +50,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000",
-        "https://pak-constitution-chatbot-i25h.vercel.app"],  # Update with your Vercel domain in production
+        "https://pak-constitution-chatbot-awud.vercel.app"],  # Update with your Vercel domain in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
