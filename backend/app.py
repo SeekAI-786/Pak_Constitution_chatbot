@@ -46,13 +46,11 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000",
-        "https://pak-constitution-chatbot-awud.vercel.app"],  # Update with your Vercel domain in production
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=["*"],
+    allow_credentials=False,  # must be False when allow_origins is "*"
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
