@@ -1,0 +1,19 @@
+{
+  "builds": [
+    { "src": "backend.py", "use": "@vercel/python" }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "backend.py" }
+  ]
+}
+```
+
+*(Your main file is `backend.py` based on your repo, not `main.py`)*
+
+---
+
+### Then update your frontend env variable
+
+In your **frontend** Vercel project → Settings → Environment Variables:
+```
+NEXT_PUBLIC_API_URL=https://your-backend.vercel.app
