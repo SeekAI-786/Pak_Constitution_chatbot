@@ -31,7 +31,7 @@ TOP_K = 7
 # Primary model (Gemini). Preview models throw 503s more often, so default to GA.
 MODEL_NAME = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash")
 # Fallback model (OpenAI), used only when Gemini is unavailable.
-FALLBACK_MODEL_NAME = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+FALLBACK_MODEL_NAME = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")
 
 # Retry settings for transient errors (503 = model overloaded/unavailable)
 MAX_RETRIES = 4
