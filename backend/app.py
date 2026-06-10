@@ -34,7 +34,7 @@ MODEL_NAME = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash")
 FALLBACK_MODEL_NAME = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")
 
 # Retry settings for transient errors (503 = model overloaded/unavailable)
-MAX_RETRIES = 4
+MAX_RETRIES = 2
 INITIAL_BACKOFF = 1.0  # seconds, doubles each retry
 
 # =====================================================
