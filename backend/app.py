@@ -35,7 +35,7 @@ index = pc.Index(INDEX_NAME)
 
 # Initialize Gemini client with new SDK
 client = genai.Client(api_key=GOOGLE_API_KEY)
-MODEL_NAME = 'gemini-2.5-flash'
+MODEL_NAME = 'gemini-3-flash-preview'
 
 # =====================================================
 # FASTAPI APP
