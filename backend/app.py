@@ -1,6 +1,7 @@
 """
 Pakistan Constitution RAG API Backend
 FastAPI server for querying Pakistan Constitution using Pinecone + Gemini
+Falls back to OpenAI (gpt-4o-mini) when Gemini is unavailable.
 Deploy on Railway
 """
 
@@ -23,13 +24,14 @@ load_dotenv()
 # =====================================================
 PINECONE_API_KEY = os.environ.get("PINECONE_API_KEY")
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 INDEX_NAME = "pakllama"
 TOP_K = 7
 
-# Use a GA (generally available) model for reliability.
-# Preview models (e.g. gemini-3-flash-preview) throw 503s far more often.
-# Override via env var without touching code if you want to swap later.
+# Primary model (Gemini). Preview models throw 503s more often, so default to GA.
 MODEL_NAME = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash")
+# Fallback model (OpenAI), used only when Gemini is unavailable.
+FALLBACK_MODEL_NAME = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
 
 # Retry settings for transient errors (503 = model overloaded/unavailable)
 MAX_RETRIES = 4
@@ -48,6 +50,17 @@ index = pc.Index(INDEX_NAME)
 
 # Initialize Gemini client with new SDK
 client = genai.Client(api_key=GOOGLE_API_KEY)
+
+# Initialize OpenAI client only if a key is present (fallback is optional).
+openai_client = None
+if OPENAI_API_KEY:
+    try:
+        from openai import OpenAI
+        openai_client = OpenAI(api_key=OPENAI_API_KEY)
+    except Exception as e:
+        print(f"OpenAI client init failed (fallback disabled): {e}")
+else:
+    print("OPENAI_API_KEY not set -- Gemini fallback to OpenAI is disabled.")
 
 # =====================================================
 # FASTAPI APP
@@ -85,11 +98,14 @@ class QueryResponse(BaseModel):
     answer: str
     citations: List[Citation]
     num_sources: int
+    model_used: str
 
 class HealthResponse(BaseModel):
     status: str
     index: str
     model: str
+    fallback_model: str
+    fallback_enabled: bool
 
 # =====================================================
 # RETRIEVAL FROM PINECONE
@@ -129,10 +145,11 @@ def retrieve_from_pinecone(query: str, top_k: int = TOP_K) -> List[dict]:
     return retrieved
 
 # =====================================================
-# GEMINI CALL WITH RETRY (handles transient 503s)
+# LLM CALLS: GEMINI (primary) + OPENAI (fallback)
 # =====================================================
 def _call_gemini_with_retry(prompt: str) -> str:
-    """Call Gemini, retrying on transient 503/overloaded errors with backoff."""
+    """Call Gemini, retrying on transient 503/429 errors with backoff.
+    Raises on final failure so the caller can fall back to OpenAI."""
     backoff = INITIAL_BACKOFF
     last_error = None
 
@@ -145,7 +162,6 @@ def _call_gemini_with_retry(prompt: str) -> str:
             return response.text
         except genai_errors.APIError as e:
             last_error = e
-            # 503 (unavailable) and 429 (rate limited) are worth retrying
             status = getattr(e, "code", None) or getattr(e, "status_code", None)
             if status in (503, 429) and attempt < MAX_RETRIES:
                 print(f"Gemini {status} on attempt {attempt}, retrying in {backoff}s...")
@@ -159,13 +175,41 @@ def _call_gemini_with_retry(prompt: str) -> str:
 
     raise last_error if last_error else RuntimeError("Gemini call failed")
 
+
+def _call_openai(prompt: str) -> str:
+    """Call OpenAI as a fallback. Raises if no client or the call fails."""
+    if openai_client is None:
+        raise RuntimeError("OpenAI fallback is not configured (OPENAI_API_KEY missing)")
+
+    response = openai_client.chat.completions.create(
+        model=FALLBACK_MODEL_NAME,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return response.choices[0].message.content
+
+
+def generate_with_fallback(prompt: str) -> tuple[str, str]:
+    """Try Gemini first; fall back to OpenAI if Gemini is unavailable.
+    Returns (answer_text, model_used)."""
+    try:
+        return _call_gemini_with_retry(prompt), MODEL_NAME
+    except Exception as gemini_error:
+        print(f"Gemini unavailable, attempting OpenAI fallback: {gemini_error}")
+        try:
+            return _call_openai(prompt), FALLBACK_MODEL_NAME
+        except Exception as openai_error:
+            # Both providers failed -- surface a combined message.
+            raise RuntimeError(
+                f"Both providers failed. Gemini: {gemini_error} | OpenAI: {openai_error}"
+            )
+
 # =====================================================
-# ANSWER GENERATION WITH GEMINI
+# ANSWER GENERATION
 # =====================================================
-def generate_answer(query: str, contexts: List[dict]) -> str:
-    """Generate answer using Gemini."""
+def generate_answer(query: str, contexts: List[dict]) -> tuple[str, str]:
+    """Generate answer, returning (answer_text, model_used)."""
     if not contexts:
-        return "I couldn't find relevant information in the Constitution to answer your question."
+        return ("I couldn't find relevant information in the Constitution to answer your question.", "none")
 
     # Build context string
     context_str = ""
@@ -211,9 +255,9 @@ INSTRUCTIONS FOR YOUR RESPONSE:
 Now provide a clear, plain-text answer:"""
 
     try:
-        return _call_gemini_with_retry(prompt)
+        return generate_with_fallback(prompt)
     except Exception as e:
-        return f"Error generating answer: {str(e)}"
+        return (f"Error generating answer: {str(e)}", "error")
 
 # =====================================================
 # API ENDPOINTS
@@ -224,7 +268,9 @@ async def health_check():
     return HealthResponse(
         status="healthy",
         index=INDEX_NAME,
-        model=MODEL_NAME   # now reflects the model actually in use
+        model=MODEL_NAME,
+        fallback_model=FALLBACK_MODEL_NAME,
+        fallback_enabled=openai_client is not None,
     )
 
 @app.post("/ask", response_model=QueryResponse)
@@ -242,8 +288,8 @@ async def ask_question(request: QueryRequest):
     if not contexts:
         raise HTTPException(status_code=404, detail="No relevant articles found")
 
-    # Generate answer
-    answer = generate_answer(request.question, contexts)
+    # Generate answer (Gemini, with OpenAI fallback)
+    answer, model_used = generate_answer(request.question, contexts)
 
     # Build citations
     citations = []
@@ -260,7 +306,8 @@ async def ask_question(request: QueryRequest):
         question=request.question,
         answer=answer,
         citations=citations,
-        num_sources=len(contexts)
+        num_sources=len(contexts),
+        model_used=model_used,
     )
 
 @app.get("/articles")
