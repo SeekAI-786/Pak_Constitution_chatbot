@@ -5,6 +5,7 @@ Deploy on Railway
 """
 
 import os
+import time
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,6 +13,7 @@ from pydantic import BaseModel
 from pinecone import Pinecone
 from dotenv import load_dotenv
 from google import genai
+from google.genai import errors as genai_errors
 
 # Load environment variables
 load_dotenv()
@@ -24,18 +26,28 @@ GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
 INDEX_NAME = "pakllama"
 TOP_K = 7
 
+# Use a GA (generally available) model for reliability.
+# Preview models (e.g. gemini-3-flash-preview) throw 503s far more often.
+# Override via env var without touching code if you want to swap later.
+MODEL_NAME = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash")
+
+# Retry settings for transient errors (503 = model overloaded/unavailable)
+MAX_RETRIES = 4
+INITIAL_BACKOFF = 1.0  # seconds, doubles each retry
+
 # =====================================================
 # INIT CLIENTS
 # =====================================================
 if not PINECONE_API_KEY:
     raise RuntimeError("PINECONE_API_KEY is not set")
+if not GOOGLE_API_KEY:
+    raise RuntimeError("GOOGLE_API_KEY is not set")
 
 pc = Pinecone(api_key=PINECONE_API_KEY)
 index = pc.Index(INDEX_NAME)
 
 # Initialize Gemini client with new SDK
 client = genai.Client(api_key=GOOGLE_API_KEY)
-MODEL_NAME = 'gemini-3-flash-preview'
 
 # =====================================================
 # FASTAPI APP
@@ -96,13 +108,13 @@ def retrieve_from_pinecone(query: str, top_k: int = TOP_K) -> List[dict]:
     except Exception as e:
         print(f"Search error: {e}")
         return []
-    
+
     retrieved = []
     hits = []
-    
+
     if hasattr(results, 'result'):
         hits = results.result.get('hits', []) if hasattr(results.result, 'get') else getattr(results.result, 'hits', [])
-    
+
     for match in hits:
         fields = match.get('fields', {}) if hasattr(match, 'get') else getattr(match, 'fields', {})
         retrieved.append({
@@ -113,8 +125,39 @@ def retrieve_from_pinecone(query: str, top_k: int = TOP_K) -> List[dict]:
             "title": fields.get('title', '') if hasattr(fields, 'get') else getattr(fields, 'title', ''),
             "keywords": fields.get('keywords', '') if hasattr(fields, 'get') else getattr(fields, 'keywords', ''),
         })
-    
+
     return retrieved
+
+# =====================================================
+# GEMINI CALL WITH RETRY (handles transient 503s)
+# =====================================================
+def _call_gemini_with_retry(prompt: str) -> str:
+    """Call Gemini, retrying on transient 503/overloaded errors with backoff."""
+    backoff = INITIAL_BACKOFF
+    last_error = None
+
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            response = client.models.generate_content(
+                model=MODEL_NAME,
+                contents=prompt
+            )
+            return response.text
+        except genai_errors.APIError as e:
+            last_error = e
+            # 503 (unavailable) and 429 (rate limited) are worth retrying
+            status = getattr(e, "code", None) or getattr(e, "status_code", None)
+            if status in (503, 429) and attempt < MAX_RETRIES:
+                print(f"Gemini {status} on attempt {attempt}, retrying in {backoff}s...")
+                time.sleep(backoff)
+                backoff *= 2
+                continue
+            raise
+        except Exception as e:
+            last_error = e
+            raise
+
+    raise last_error if last_error else RuntimeError("Gemini call failed")
 
 # =====================================================
 # ANSWER GENERATION WITH GEMINI
@@ -123,14 +166,14 @@ def generate_answer(query: str, contexts: List[dict]) -> str:
     """Generate answer using Gemini."""
     if not contexts:
         return "I couldn't find relevant information in the Constitution to answer your question."
-    
+
     # Build context string
     context_str = ""
     for i, ctx in enumerate(contexts, 1):
         article_info = f"Article {ctx['article']}" if ctx.get('article') else f"Source {i}"
         title_info = f" - {ctx['title']}" if ctx.get('title') else ""
         context_str += f"\n{article_info}{title_info}:\n{ctx['text']}\n"
-    
+
     prompt = f"""You are a friendly legal expert assistant specializing in the Constitution of Pakistan.
 
 QUESTION: {query}
@@ -168,11 +211,7 @@ INSTRUCTIONS FOR YOUR RESPONSE:
 Now provide a clear, plain-text answer:"""
 
     try:
-        response = client.models.generate_content(
-            model=MODEL_NAME,
-            contents=prompt
-        )
-        return response.text
+        return _call_gemini_with_retry(prompt)
     except Exception as e:
         return f"Error generating answer: {str(e)}"
 
@@ -185,7 +224,7 @@ async def health_check():
     return HealthResponse(
         status="healthy",
         index=INDEX_NAME,
-        model="gemini-2.0-flash"
+        model=MODEL_NAME   # now reflects the model actually in use
     )
 
 @app.post("/ask", response_model=QueryResponse)
@@ -196,16 +235,16 @@ async def ask_question(request: QueryRequest):
     """
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty")
-    
+
     # Retrieve relevant documents
     contexts = retrieve_from_pinecone(request.question, request.top_k)
-    
+
     if not contexts:
         raise HTTPException(status_code=404, detail="No relevant articles found")
-    
+
     # Generate answer
     answer = generate_answer(request.question, contexts)
-    
+
     # Build citations
     citations = []
     for i, ctx in enumerate(contexts, 1):
@@ -216,7 +255,7 @@ async def ask_question(request: QueryRequest):
             score=round(ctx.get('score', 0.0), 4),
             text_preview=ctx.get('text', '')[:200] + "..."
         ))
-    
+
     return QueryResponse(
         question=request.question,
         answer=answer,
@@ -227,20 +266,19 @@ async def ask_question(request: QueryRequest):
 @app.get("/articles")
 async def list_articles():
     """Get a sample of available articles."""
-    # This is a simple endpoint to show the system is working
     sample_queries = [
         "fundamental rights",
         "president powers",
         "supreme court"
     ]
-    
+
     articles = set()
     for query in sample_queries:
         results = retrieve_from_pinecone(query, top_k=3)
         for r in results:
             if r.get('article'):
                 articles.add(r['article'])
-    
+
     return {"available_articles": sorted(list(articles))[:20]}
 
 # =====================================================
