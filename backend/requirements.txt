@@ -4,3 +4,4 @@ python-dotenv
 pinecone
 google-genai
 openai
+httpx
