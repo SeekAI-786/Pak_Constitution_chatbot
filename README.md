@@ -2,6 +2,8 @@
 
 An AI powered legal assistant that answers questions about the **Constitution of Pakistan** using **Retrieval Augmented Generation (RAG)**. The application combines semantic search with a Large Language Model (LLM) to generate accurate, context aware responses based on constitutional documents.
 
+> **Live Demo:** https://pak-constitution-chatbot.vercel.app
+
 > **Built with:** FastAPI • Next.js • Pinecone • Google Gemini • Tailwind CSS • TypeScript
 
 ---
