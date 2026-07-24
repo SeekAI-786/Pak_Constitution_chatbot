@@ -1,135 +1,307 @@
 # Pakistan Constitution AI Chatbot
 
-An AI-powered chatbot that answers questions about the Constitution of Pakistan using RAG (Retrieval Augmented Generation) with Pinecone vector database and Google Gemini.
+An AI powered legal assistant that answers questions about the **Constitution of Pakistan** using **Retrieval Augmented Generation (RAG)**. The application combines semantic search with a Large Language Model (LLM) to generate accurate, context aware responses based on constitutional documents.
 
-![Pakistan Constitution Bot](https://img.shields.io/badge/Pakistan-Constitution%20Bot-green)
-
-## 🏗️ Project Structure
-
-```
-pak_constitution/
-├── backend/           # FastAPI backend
-│   ├── backend.py     # Main API server
-│   ├── requirements.txt
-│   └── .env.example   # Environment variables template
-├── frontend/          # Next.js frontend
-│   ├── app/
-│   │   ├── page.tsx       # Main chat page
-│   │   ├── contact/       # Contact page
-│   │   ├── layout.tsx
-│   │   └── globals.css
-│   ├── package.json
-│   └── ...config files
-└── README.md
-```
-
-## 🚀 Features
-
-- **RAG-based Q&A**: Uses Pinecone for semantic search and Gemini for answer generation
-- **ChatGPT-style UI**: Clean, modern interface with sidebar navigation
-- **Responsive Design**: Works on desktop and mobile
-- **Pakistan Theme**: Green color scheme inspired by Pakistan's flag
-
-## 🛠️ Setup
-
-### Backend (FastAPI)
-
-1. Navigate to backend folder:
-   ```bash
-   cd backend
-   ```
-
-2. Create virtual environment:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. Create `.env` file from example:
-   ```bash
-   cp .env.example .env
-   ```
-
-5. Add your API keys to `.env`:
-   ```
-   PINECONE_API_KEY=your_pinecone_api_key
-   GEMINI_API_KEY=your_gemini_api_key
-   ```
-
-6. Run the server:
-   ```bash
-   uvicorn backend:app --reload
-   ```
-
-Backend will be available at `http://localhost:8000`
-
-### Frontend (Next.js)
-
-1. Navigate to frontend folder:
-   ```bash
-   cd frontend
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Create `.env.local` file:
-   ```
-   NEXT_PUBLIC_API_URL=http://localhost:8000
-   ```
-
-4. Run development server:
-   ```bash
-   npm run dev
-   ```
-
-Frontend will be available at `http://localhost:3000`
-
-## 🌐 Deployment
-
-### Backend on Railway
-
-1. Push to GitHub
-2. Connect Railway to your GitHub repo
-3. Add environment variables in Railway dashboard
-4. Deploy!
-
-### Frontend on Vercel
-
-1. Push to GitHub
-2. Import project in Vercel
-3. Set `NEXT_PUBLIC_API_URL` to your Railway backend URL
-4. Deploy!
-
-## 📝 API Endpoints
-
-- `POST /ask` - Ask a question about the Constitution
-  ```json
-  {
-    "question": "What are the fundamental rights?"
-  }
-  ```
-
-- `GET /health` - Health check endpoint
-
-## 🛡️ Tech Stack
-
-- **Backend**: FastAPI, Pinecone, Google Gemini
-- **Frontend**: Next.js 16, Tailwind CSS, TypeScript
-- **Vector DB**: Pinecone (llama-text-embed-v2)
-- **LLM**: Google Gemini 2.5 Flash
-
-## 👨‍💻 Developed By
-
-**Echytech Solutions**
+> **Built with:** FastAPI • Next.js • Pinecone • Google Gemini • Tailwind CSS • TypeScript
 
 ---
 
-Made with ❤️ for Pakistan
+## Overview
+
+The Constitution of Pakistan is a lengthy legal document, making it difficult for citizens, students and professionals to quickly locate relevant articles and understand constitutional provisions.
+
+This project addresses that challenge by leveraging **Retrieval Augmented Generation (RAG)**. Instead of relying solely on an LLM's internal knowledge, the chatbot retrieves the most relevant constitutional sections from a vector database before generating a response. This results in more accurate, reliable and context-aware answers.
+
+---
+
+## Features
+
+- AI powered constitutional question answering
+- Retrieval Augmented Generation (RAG) pipeline
+- Semantic search using Pinecone Vector Database
+- Context aware responses generated with Google Gemini
+- Modern ChatGPT inspired user interface
+- Fully responsive design for desktop and mobile
+- Pakistan themed UI
+- FastAPI backend with REST API
+- Next.js frontend with Tailwind CSS
+
+---
+
+# System Architecture
+
+```mermaid
+flowchart LR
+
+A[User Question]
+-->B[Next.js Frontend]
+
+B-->C[FastAPI Backend]
+
+C-->D[Pinecone Vector Database]
+
+D-->E[Retrieve Relevant Constitution Articles]
+
+E-->F[Google Gemini 2.5 Flash]
+
+F-->G[Generated Response]
+
+G-->B
+```
+
+---
+
+# How It Works
+
+1. The user submits a question through the web interface.
+2. The FastAPI backend converts the query into embeddings.
+3. Pinecone performs semantic similarity search to retrieve the most relevant constitutional sections.
+4. The retrieved context is passed to Google Gemini.
+5. Gemini generates a context aware response based on the retrieved constitutional content.
+6. The answer is displayed in the chat interface.
+
+---
+
+# Project Structure
+
+```text
+pak_constitution/
+│
+├── backend/
+│   ├── backend.py
+│   ├── requirements.txt
+│   └── .env.example
+│
+├── frontend/
+│   ├── app/
+│   │   ├── page.tsx
+│   │   ├── contact/
+│   │   ├── layout.tsx
+│   │   └── globals.css
+│   │
+│   ├── package.json
+│   └── ...
+│
+└── README.md
+```
+
+---
+
+# 🛠️ Tech Stack
+
+| Category | Technology |
+|-----------|------------|
+| Frontend | Next.js 16, React, TypeScript |
+| Styling | Tailwind CSS |
+| Backend | FastAPI |
+| LLM | Google Gemini 2.5 Flash |
+| Vector Database | Pinecone |
+| Embedding Model | llama-text-embed-v2 |
+| Retrieval | Retrieval-Augmented Generation (RAG) |
+
+---
+
+# Screenshots
+
+### Home Page
+
+```text
+screenshots/home.png
+```
+
+### Chat Interface
+
+```text
+screenshots/chat.png
+```
+
+---
+
+# Installation
+
+## 1. Clone the Repository
+
+```bash
+git clone https://github.com/yourusername/pakistan-constitution-chatbot.git
+
+cd pakistan-constitution-chatbot
+```
+
+---
+
+## Backend Setup
+
+Navigate to the backend folder:
+
+```bash
+cd backend
+```
+
+Create a virtual environment:
+
+```bash
+python -m venv venv
+```
+
+Activate the environment:
+
+**Windows**
+
+```bash
+venv\Scripts\activate
+```
+
+**Linux / macOS**
+
+```bash
+source venv/bin/activate
+```
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Copy the environment template:
+
+```bash
+cp .env.example .env
+```
+
+Add your API keys:
+
+```env
+PINECONE_API_KEY=YOUR_PINECONE_API_KEY
+GEMINI_API_KEY=YOUR_GEMINI_API_KEY
+```
+
+Run the FastAPI server:
+
+```bash
+uvicorn backend:app --reload
+```
+
+Backend runs at:
+
+```
+http://localhost:8000
+```
+
+---
+
+## Frontend Setup
+
+Navigate to the frontend folder:
+
+```bash
+cd frontend
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Create a `.env.local` file:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+Frontend runs at:
+
+```
+http://localhost:3000
+```
+
+---
+
+# API Endpoints
+
+## Ask a Question
+
+**POST** `/ask`
+
+Request:
+
+```json
+{
+  "question": "What are the Fundamental Rights in the Constitution of Pakistan?"
+}
+```
+
+---
+
+## Health Check
+
+**GET**
+
+```
+/health
+```
+
+---
+
+# Deployment
+
+## Backend
+
+Deploy the FastAPI backend using platforms such as:
+
+- Railway
+- Render
+- Azure App Service
+- AWS EC2
+
+Ensure the following environment variables are configured:
+
+- `PINECONE_API_KEY`
+- `GEMINI_API_KEY`
+
+---
+
+## Frontend
+
+Deploy the Next.js application on:
+
+- Vercel
+- Netlify
+
+Set:
+
+```env
+NEXT_PUBLIC_API_URL=<YOUR_BACKEND_URL>
+```
+
+---
+
+# Future Improvements
+
+- User authentication
+- Conversation history
+- Source citations for retrieved articles
+- Multi language support (English & Urdu)
+- Voice based interaction
+- Streaming AI responses
+- Article bookmarking
+- Advanced legal search filters
+
+---
+
+# License
+
+This project is intended for educational and research purposes.
+
+---
+
+## Author
+
+Developed with ❤️ to improve access to constitutional knowledge through AI.
