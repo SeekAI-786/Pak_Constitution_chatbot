@@ -107,9 +107,11 @@ pak_constitution/
 
 ![App Interface](https://github.com/SeekAI-786/Pak_Constitution_chatbot/blob/main/screenshots/home.png)
 
+---
+
 ### Chat Interface
 
-![App Interface](https://github.com/SeekAI-786/Pak_Constitution_chatbot/blob/main/screenshots/home.png)
+![App Interface](https://github.com/SeekAI-786/Pak_Constitution_chatbot/blob/main/screenshots/chat.png)
 
 ---
 
