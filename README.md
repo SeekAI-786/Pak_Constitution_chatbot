@@ -105,15 +105,11 @@ pak_constitution/
 
 ### Home Page
 
-```text
-screenshots/home.png
-```
+![App Interface](https://github.com/SeekAI-786/Pak_Constitution_chatbot/blob/main/screenshots/home.png)
 
 ### Chat Interface
 
-```text
-screenshots/chat.png
-```
+![App Interface](https://github.com/SeekAI-786/Pak_Constitution_chatbot/blob/main/screenshots/home.png)
 
 ---
 
